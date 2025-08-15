@@ -6,6 +6,7 @@ export default class SettingsScene extends Phaser.Scene {
   create() {
     const { width, height } = this.scale;
 
+    // Title
     this.add.text(width / 2, height * 0.15, "⚙️ Settings", {
       fontFamily: "system-ui, sans-serif",
       fontSize: "48px",
@@ -13,24 +14,21 @@ export default class SettingsScene extends Phaser.Scene {
       color: "#ffffff"
     }).setOrigin(0.5);
 
-    // Show current name from registry
+    // Name edit button
     this.nameButton = this.createButton(
       width / 2,
-      height * 0.35,
+      height * 0.4, // shifted slightly down
       `Edit Name: ${this.registry.get("playerName")}`,
       () => this.openNameDialog()
     );
 
-    // Example toggle (kept simple)
-    this.soundOn = true;
-    this.createButton(width / 2, height * 0.47, `Sound: ${this.soundOn ? "ON" : "OFF"}`, () => {
-      this.soundOn = !this.soundOn;
-    });
-
-    // Back
-    this.createButton(width / 2, height * 0.7, "⬅ Back to Menu", () => {
-      this.scene.start("MenuScene");
-    });
+    // Back to menu button
+    this.createButton(
+      width / 2,
+      height * 0.6, // closer to name button now
+      "⬅ Back to Menu",
+      () => this.scene.start("MenuScene")
+    );
   }
 
   createButton(x, y, text, callback) {
@@ -53,12 +51,12 @@ export default class SettingsScene extends Phaser.Scene {
   openNameDialog() {
     const { width, height } = this.scale;
 
-    // Dim background
+    // Overlay
     const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.55)
       .setDepth(1000)
       .setInteractive();
 
-    // Modal frame (drawn with Graphics for soft corners)
+    // Modal frame
     const modalW = Math.min(520, Math.floor(width * 0.9));
     const modalH = 200;
     const modalX = width / 2 - modalW / 2;
@@ -68,14 +66,14 @@ export default class SettingsScene extends Phaser.Scene {
     frame.fillStyle(0x141c38, 1).fillRoundedRect(0, 0, modalW, modalH, 16);
     frame.lineStyle(2, 0x2c3966, 1).strokeRoundedRect(0, 0, modalW, modalH, 16);
 
-    // Title
-    this.add.text(width / 2, modalY + 18, "Edit Player Name", {
+    // Modal title
+    const titleText = this.add.text(width / 2, modalY + 18, "Edit Player Name", {
       fontFamily: "system-ui, sans-serif",
       fontSize: "22px",
       color: "#cfe0ff"
     }).setOrigin(0.5).setDepth(1002);
 
-    // DOM container with <input> + buttons
+    // HTML content
     const html = `
       <div style="
         width:${modalW - 40}px;
@@ -106,19 +104,16 @@ export default class SettingsScene extends Phaser.Scene {
 
     const dom = this.add.dom(width / 2, height / 2)
       .createFromHTML(html)
-      .setDepth(1003);
+      .setDepth(1003)
+      .setOrigin(0.5);
 
-    // Position DOM centered inside the frame
-    dom.setOrigin(0.5);
     dom.x = modalX + modalW / 2;
     dom.y = modalY + modalH / 2 + 8;
 
-    // Wire up events
     const input = dom.getChildByID("nameInput");
     const saveBtn = dom.getChildByID("saveBtn");
     const cancelBtn = dom.getChildByID("cancelBtn");
 
-    // Auto focus + select
     setTimeout(() => {
       input.focus();
       input.select();
@@ -127,15 +122,17 @@ export default class SettingsScene extends Phaser.Scene {
     const closeModal = () => {
       overlay.destroy();
       frame.destroy();
+      titleText.destroy();
+      if (dom.node && dom.node.parentNode) {
+        dom.node.parentNode.removeChild(dom.node);
+      }
       dom.destroy();
     };
 
     const doSave = () => {
       const newName = String(input.value || "").trim();
-      if (!newName) return;              // ignore empty
-      // You could add more validation here (allowed chars, etc.)
+      if (!newName) return;
       this.registry.set("playerName", newName);
-      // refresh settings button text
       this.nameButton.setText(`Edit Name: ${newName}`);
       closeModal();
     };
@@ -147,9 +144,7 @@ export default class SettingsScene extends Phaser.Scene {
       if (e.key === "Escape") closeModal();
     });
 
-    // Click outside frame closes modal
     overlay.on("pointerdown", (pointer) => {
-      // Optional: only close if clicked truly outside modal area
       const insideX = pointer.x >= modalX && pointer.x <= modalX + modalW;
       const insideY = pointer.y >= modalY && pointer.y <= modalY + modalH;
       if (!insideX || !insideY) closeModal();

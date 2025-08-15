@@ -298,92 +298,92 @@ export default class OfficeScene extends Phaser.Scene {
   buildNpcList(cx, cy, playerName) {
     return [
       {
-        name: "Paul",
-        role: "YC Advisor Partner",
+        name: "Rick",
+        role: "Advisor Partner",
         x: cx + 180,
         y: cy + 20,
         spriteKey: "npc_paul",
         mood: 80,
           questions: [
             {
-              dialog: [`Paul Advisor: So, ${playerName}, what's your unfair advantage—besides caffeine?`],
+              dialog: [`Rick Advisor: So, ${playerName}, what's your unfair advantage—besides caffeine?`],
               choices: [
                 { label: "Lean into AI hype 🚀", effects: { Hype: +15, Product: -5, Morale: -5, Funds: 0 }, result: "You ride the hype wave. Twitter buzzes; engineers grumble." },
                 { label: "Polish the product 🛠️", effects: { Product: +12, Hype: -5, Morale: +2, Funds: -4000 }, result: "Fewer tweets, better product. Burn ticks up." }
               ]
             },
             {
-              dialog: [`Paul Advisor: Market is crowded. Differentiate by brand or by tech?`],
+              dialog: [`Rick Advisor: Market is crowded. Differentiate by brand or by tech?`],
               choices: [
                 { label: "Brand storytelling 🎨", effects: { Hype: +10, Product: 0, Morale: +3, Funds: -1000 }, result: "People remember you; engineers roll their eyes." },
                 { label: "Deep tech moat 🔬", effects: { Product: +15, Hype: -3, Morale: +1, Funds: -5000 }, result: "Core tech improves; buzz slows down." }
               ]
             },
             {
-              dialog: [`Paul Advisor: Growth is slow. Push ads or double down on referrals?`],
+              dialog: [`Rick Advisor: Growth is slow. Push ads or double down on referrals?`],
               choices: [
                 { label: "Aggressive ad spend 📢", effects: { Funds: -5000, Hype: +12, Product: 0, Morale: -2 }, result: "More eyeballs, but burn accelerates." },
                 { label: "Referral incentives 🎁", effects: { Hype: +6, Morale: +2, Funds: -1000 }, result: "Users invite friends; growth feels organic." }
               ]
             },
             {
-              dialog: [`Paul Advisor: Your burn rate is high. Cut perks or slow hiring?`],
+              dialog: [`Rick Advisor: Your burn rate is high. Cut perks or slow hiring?`],
               choices: [
                 { label: "Cut team perks 💸", effects: { Funds: +3000, Morale: -8 }, result: "Money saved, but grumbling in Slack grows louder." },
                 { label: "Slow down hiring ⏳", effects: { Funds: +2000, Product: -4, Morale: 0 }, result: "Costs drop, but delivery speed suffers." }
               ]
             },
             {
-              dialog: [`Paul Advisor: A big corp offers a partnership. Take it or stay independent?`],
+              dialog: [`Rick Advisor: A big corp offers a partnership. Take it or stay independent?`],
               choices: [
                 { label: "Take the deal 🤝", effects: { Funds: +10000, Hype: +8, Morale: -3 }, result: "Cash injection comes with strings attached." },
                 { label: "Stay independent 🏴", effects: { Product: +5, Hype: -2, Morale: +4 }, result: "Freedom maintained, but resources remain tight." }
               ]
             },
             {
-              dialog: [`Paul Advisor: Customers want a mobile app now. Build fast or wait for funding?`],
+              dialog: [`Rick Advisor: Customers want a mobile app now. Build fast or wait for funding?`],
               choices: [
                 { label: "Build fast ⚡", effects: { Product: +10, Morale: -3, Funds: -4000 }, result: "You deliver early but quality takes a hit." },
                 { label: "Wait for funding 💰", effects: { Funds: +0, Hype: -4, Morale: +1 }, result: "You buy time, but users get impatient." }
               ]
             },
             {
-              dialog: [`Paul Advisor: The press wants an interview. Send you or your co-founder?`],
+              dialog: [`Rick Advisor: The press wants an interview. Send you or your co-founder?`],
               choices: [
                 { label: "Go yourself 🎤", effects: { Hype: +8, Morale: +2 }, result: "You nail the pitch; brand recognition grows." },
                 { label: "Send co-founder 👥", effects: { Morale: +4, Hype: +4 }, result: "They shine in the spotlight; team bonds tighten." }
               ]
             },
             {
-              dialog: [`Paul Advisor: Competitor is open-sourcing their core tech. Do the same?`],
+              dialog: [`Rick Advisor: Competitor is open-sourcing their core tech. Do the same?`],
               choices: [
                 { label: "Open-source ours 👐", effects: { Hype: +10, Product: +3, Funds: -5000 }, result: "Developers rally; business model shifts." },
                 { label: "Keep it closed 🔒", effects: { Product: +6, Morale: +2 }, result: "Control maintained, but some devs scoff." }
               ]
             },
             {
-              dialog: [`Paul Advisor: Team is debating office vs. remote. What's the call?`],
+              dialog: [`Rick Advisor: Team is debating office vs. remote. What's the call?`],
               choices: [
                 { label: "Office culture 🏢", effects: { Morale: -2, Product: +4, Funds: -8000 }, result: "Collaboration improves, costs rise." },
                 { label: "Remote-first 🌍", effects: { Morale: +6, Funds: +2000, Product: -2 }, result: "Team enjoys flexibility; sync challenges remain." }
               ]
             },
             {
-              dialog: [`Paul Advisor: Users love a side feature more than your core product. Pivot?`],
+              dialog: [`Rick Advisor: Users love a side feature more than your core product. Pivot?`],
               choices: [
                 { label: "Full pivot 🔄", effects: { Product: +8, Hype: +5, Funds: -7000 }, result: "You embrace change; roadmap resets." },
                 { label: "Stay the course 🛤️", effects: { Product: +4, Morale: +2 }, result: "Focus preserved, but growth is slower." }
               ]
             },
             {
-              dialog: [`Paul Advisor: You're invited to a pitch competition. Prepare heavily or wing it?`],
+              dialog: [`Rick Advisor: You're invited to a pitch competition. Prepare heavily or wing it?`],
               choices: [
                 { label: "Prepare heavily 📚", effects: { Product: -2, Hype: +8, Morale: +2 }, result: "Your polish impresses the judges." },
                 { label: "Wing it 😎", effects: { Morale: +4, Hype: +4, Product: -4 }, result: "Charisma carries you… mostly." }
               ]
             },
             {
-              dialog: [`Paul Advisor: Investor wants rapid expansion. Agree or resist?`],
+              dialog: [`Rick Advisor: Investor wants rapid expansion. Agree or resist?`],
               choices: [
                 { label: "Agree and expand 🌍", effects: { Hype: +12, Product: -6, Funds: +8000 }, result: "New markets open, but strain increases." },
                 { label: "Resist and focus 🎯", effects: { Product: +8, Morale: +3, Hype: -4 }, result: "Steady progress builds a stronger base." }
@@ -1457,6 +1457,10 @@ autoAdvanceWeek() {
       this.registry.set("npcTalkedThisWeek", {});
       this.updateWeekText();
 
+      this.npcs.forEach(npc => {
+        npc.mood = Phaser.Math.Clamp(npc.mood + 10, 0, 100);
+      });
+
       // Founder visit week?
       if (week % 3 === 0 && week <= 12) {
         let founderIndex = (week / 3) - 1;
@@ -1693,18 +1697,26 @@ autoAdvanceWeek() {
     this.cleanupActive = false;
     this.trashGroup.clear(true, true);
 
+    // Find Liam NPC
+    let liam = this.npcs.find(n => n.name === "Liam");
+
     if (success) {
       this.registry.set("Morale", (this.registry.get("Morale") || 0) + 10);
-      this.registry.set("LiamMood", (this.registry.get("LiamMood") || 0) + 20);
+      if (liam) {
+        liam.mood = Phaser.Math.Clamp(liam.mood + 20, 0, 100);
+      }
       this.showTempMessage("✅ Cleanup Complete! +Morale +Liam Mood");
     } else {
       this.registry.set("Morale", (this.registry.get("Morale") || 0) - 5);
-      this.registry.set("LiamMood", (this.registry.get("LiamMood") || 0) - 10);
+      if (liam) {
+        liam.mood = Phaser.Math.Clamp(liam.mood - 10, 0, 100);
+      }
       this.showTempMessage("❌ Too Slow! -Morale -Liam Mood");
     }
 
     this.refreshHud();
   }
+
 
   // Temporary on-screen message
   showTempMessage(text) {

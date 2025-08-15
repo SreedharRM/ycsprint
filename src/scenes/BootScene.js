@@ -2,7 +2,7 @@ export default class BootScene extends Phaser.Scene {
   constructor() { super("BootScene"); }
 
   preload() {
-    this.registry.set("gameTitle", "# Startup Sprint 🏃💻");
+    this.registry.set("gameTitle", "Startup Sprint 🏃💻");
     this.registry.set("gameSubtitle", "A 2D Humorous YC Founder Simulator");
 
     if (!this.registry.has("playerName")) this.registry.set("playerName", "Founder");
@@ -82,10 +82,10 @@ export default class BootScene extends Phaser.Scene {
     this.load.spritesheet("npc_ava", "assets/Ava_universal.png", { frameWidth: 64, frameHeight: 64 });
     this.load.spritesheet("npc_max", "assets/CTO_universal.png", { frameWidth: 64, frameHeight: 64 });
     this.load.spritesheet("npc_liam", "assets/intern_universal.png", { frameWidth: 64, frameHeight: 64 });
-    this.load.image("founder1", "assets/founder5.png");
+    this.load.image("founder1", "assets/founder1.png");
     this.load.image("founder2", "assets/founder2.png");
-    this.load.image("founder3", "assets/founder1.png");
-    this.load.image("founder4", "assets/founder1.png");
+    this.load.image("founder3", "assets/founder3.png");
+    this.load.image("founder4", "assets/founder4.png");
     this.load.image("trash_paper", "assets/paper.png");
 
   }
