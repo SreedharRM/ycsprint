@@ -23,9 +23,74 @@ export default class OfficeScene extends Phaser.Scene {
     const cx = Math.round(this.room.width * 0.5);
     const cy = Math.round(this.room.height * 0.55);
 
-    this.platform = this.add.image(cx, cy + 40, "platform");
-    this.solids.create(cx, cy, "desk");
-    this.solids.create(cx - 120, cy + 60, "chair");
+
+    // 2) Desk centered, on top of platform
+    //    Give it a tighter collider so you can get close without "invisible wall"
+    const desk = this.physics.add.staticImage(cx, cy, "desk")
+      .setOrigin(0.5, 0.5)
+      .setDepth(10);
+
+    // Optional: shrink collision bounds a bit (tune to your sprite)
+    // Example: 80% width, 60% height
+    desk.body.setSize(desk.width * 0.8, desk.height * 0.6).setOffset(
+      (desk.width - desk.width * 0.8) / 2,
+      (desk.height - desk.height * 0.6) / 2
+    );
+
+
+    // Add to solids for consistency (not strictly needed since already staticImages)
+    this.solids.add(desk);
+
+
+    this.founders = [
+      {
+        name: "Jared Friedman",
+        imageKey: "founder1", // preload this in load()
+        tips: [
+          { condition: stats => stats.Funds < 2000, text: "Cash is running low — speak to the investor about quick funding." },
+          { condition: stats => stats.Product < 40, text: "Your product needs work — talk to your lead developer." },
+          { condition: stats => stats.Morale < 40, text: "Team morale is shaky — check in with HR." },
+          { condition: stats => stats.Hype < 40, text: "No one’s talking about your startup — meet with marketing." },
+          { condition: () => true, text: "You’re doing fine — keep pushing forward." }
+        ]
+      },
+      {
+        name: "Garry Tan",
+        imageKey: "founder2",
+        tips: [
+          { condition: stats => stats.Funds < 2000, text: "Money dries up faster than you think — talk to your CFO." },
+          { condition: stats => stats.Product < 40, text: "Your tech isn’t impressive yet — work closely with engineering." },
+          { condition: stats => stats.Morale < 40, text: "Low morale will kill you — have a team lunch." },
+          { condition: stats => stats.Hype < 40, text: "Without hype, you’ll be forgotten — speak with PR." },
+          { condition: () => true, text: "Everything looks good — keep executing." }
+        ]
+      },
+      {
+        name: "Michael Seibel",
+        imageKey: "founder3",
+        tips: [
+          { condition: stats => stats.Funds < 2000, text: "You might run out of cash — talk to the bank." },
+          { condition: stats => stats.Product < 40, text: "Polish your product — work with QA." },
+          { condition: stats => stats.Morale < 40, text: "Burnout risk — give your team a break." },
+          { condition: stats => stats.Hype < 40, text: "Nobody knows you — arrange a press release." },
+          { condition: () => true, text: "You’re on track — maintain momentum." }
+        ]
+      },
+      {
+        name: "Paul Graham",
+        imageKey: "founder4",
+        tips: [
+          { condition: stats => stats.Funds < 2000, text: "Funds are too low — reach out to angel investors." },
+          { condition: stats => stats.Product < 40, text: "Product’s too rough — hold a sprint review." },
+          { condition: stats => stats.Morale < 40, text: "Team morale dip — give recognition awards." },
+          { condition: stats => stats.Hype < 40, text: "Hype is cold — plan a launch event." },
+          { condition: () => true, text: "Strong position — prepare for scaling." }
+        ]
+      }
+    ];
+
+    // Rebuild/refresh static bodies so Arcade Physics locks them in
+    desk.refreshBody();
 
     // ----- Player -----
     this.anims.create({
@@ -137,6 +202,8 @@ export default class OfficeScene extends Phaser.Scene {
       s.setImmovable(true);
       s.body.moves = false;
 
+
+      // Label (name + role)
       const label = this.add
         .text(s.x, s.y - 40, `${npc.name} (${npc.role})`, {
           fontFamily: "system-ui, sans-serif",
@@ -147,10 +214,13 @@ export default class OfficeScene extends Phaser.Scene {
         })
         .setOrigin(0.5);
 
+      const moodBarBg = this.add.rectangle(s.x, s.y - 28, 50, 6, 0x333333).setOrigin(0.5);
+      const moodBarFill = this.add.rectangle(s.x - 25, s.y - 28, (npc.mood / 100) * 50, 6, 0x00ff00).setOrigin(0, 0.5);
+
       const zone = this.add.zone(s.x, s.y, 140, 120).setOrigin(0.5);
       this.physics.world.enable(zone, Phaser.Physics.Arcade.STATIC_BODY);
 
-      this.npcSprites.push({ sprite: s, label, npc });
+      this.npcSprites.push({ sprite: s, label, moodBarBg, moodBarFill, npc });
       this.interactZones.push({ zone, npc });
     });
 
@@ -189,8 +259,12 @@ export default class OfficeScene extends Phaser.Scene {
 
     this.registry.events.on("changedata-week", () => this.updateWeekText());
 
+    
     // ----- HUD (left) -----
     this.buildHud();
+    this.buildServerRoom();
+    this.buildCeoRoom();
+    this.time.delayedCall(250, () => this.showInvestmentPanel());
 
     // ----- Controls -----
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -229,19 +303,20 @@ export default class OfficeScene extends Phaser.Scene {
         x: cx + 180,
         y: cy + 20,
         spriteKey: "npc_paul",
+        mood: 80,
           questions: [
             {
               dialog: [`Paul Advisor: So, ${playerName}, what's your unfair advantage—besides caffeine?`],
               choices: [
                 { label: "Lean into AI hype 🚀", effects: { Hype: +15, Product: -5, Morale: -5, Funds: 0 }, result: "You ride the hype wave. Twitter buzzes; engineers grumble." },
-                { label: "Polish the product 🛠️", effects: { Product: +12, Hype: -5, Morale: +2, Funds: -2000 }, result: "Fewer tweets, better product. Burn ticks up." }
+                { label: "Polish the product 🛠️", effects: { Product: +12, Hype: -5, Morale: +2, Funds: -4000 }, result: "Fewer tweets, better product. Burn ticks up." }
               ]
             },
             {
               dialog: [`Paul Advisor: Market is crowded. Differentiate by brand or by tech?`],
               choices: [
                 { label: "Brand storytelling 🎨", effects: { Hype: +10, Product: 0, Morale: +3, Funds: -1000 }, result: "People remember you; engineers roll their eyes." },
-                { label: "Deep tech moat 🔬", effects: { Product: +15, Hype: -3, Morale: +1, Funds: -3000 }, result: "Core tech improves; buzz slows down." }
+                { label: "Deep tech moat 🔬", effects: { Product: +15, Hype: -3, Morale: +1, Funds: -5000 }, result: "Core tech improves; buzz slows down." }
               ]
             },
             {
@@ -282,21 +357,21 @@ export default class OfficeScene extends Phaser.Scene {
             {
               dialog: [`Paul Advisor: Competitor is open-sourcing their core tech. Do the same?`],
               choices: [
-                { label: "Open-source ours 👐", effects: { Hype: +10, Product: +3, Funds: -2000 }, result: "Developers rally; business model shifts." },
+                { label: "Open-source ours 👐", effects: { Hype: +10, Product: +3, Funds: -5000 }, result: "Developers rally; business model shifts." },
                 { label: "Keep it closed 🔒", effects: { Product: +6, Morale: +2 }, result: "Control maintained, but some devs scoff." }
               ]
             },
             {
               dialog: [`Paul Advisor: Team is debating office vs. remote. What's the call?`],
               choices: [
-                { label: "Office culture 🏢", effects: { Morale: -2, Product: +4, Funds: -3000 }, result: "Collaboration improves, costs rise." },
+                { label: "Office culture 🏢", effects: { Morale: -2, Product: +4, Funds: -8000 }, result: "Collaboration improves, costs rise." },
                 { label: "Remote-first 🌍", effects: { Morale: +6, Funds: +2000, Product: -2 }, result: "Team enjoys flexibility; sync challenges remain." }
               ]
             },
             {
               dialog: [`Paul Advisor: Users love a side feature more than your core product. Pivot?`],
               choices: [
-                { label: "Full pivot 🔄", effects: { Product: +8, Hype: +5, Funds: -3000 }, result: "You embrace change; roadmap resets." },
+                { label: "Full pivot 🔄", effects: { Product: +8, Hype: +5, Funds: -7000 }, result: "You embrace change; roadmap resets." },
                 { label: "Stay the course 🛤️", effects: { Product: +4, Morale: +2 }, result: "Focus preserved, but growth is slower." }
               ]
             },
@@ -310,7 +385,7 @@ export default class OfficeScene extends Phaser.Scene {
             {
               dialog: [`Paul Advisor: Investor wants rapid expansion. Agree or resist?`],
               choices: [
-                { label: "Agree and expand 🌍", effects: { Hype: +12, Product: -6, Funds: +5000 }, result: "New markets open, but strain increases." },
+                { label: "Agree and expand 🌍", effects: { Hype: +12, Product: -6, Funds: +8000 }, result: "New markets open, but strain increases." },
                 { label: "Resist and focus 🎯", effects: { Product: +8, Morale: +3, Hype: -4 }, result: "Steady progress builds a stronger base." }
               ]
             }
@@ -323,25 +398,26 @@ export default class OfficeScene extends Phaser.Scene {
         x: cx - 300,
         y: cy - 100,
         spriteKey: "npc_ava",
+        mood: 80,
         questions: [
           {
             dialog: [`Ava: MVP is almost ready. Ship now or rest this weekend?`],
             choices: [
-              { label: "Ship scrappy MVP 📦", effects: { Product: +8, Hype: +6, Morale: -6, Funds: -1000 }, result: "You ship. Users trickle in; team yawns loudly." },
+              { label: "Ship scrappy MVP 📦", effects: { Product: +8, Hype: +6, Morale: -6, Funds: -6000 }, result: "You ship. Users trickle in; team yawns loudly." },
               { label: "Team weekend off 🌴", effects: { Morale: +14, Product: -4, Hype: -3, Funds: 0 }, result: "Rest helps; roadmap slips a hair." }
             ]
           },
           {
             dialog: [`Ava: Should we hire a junior dev now or wait until after funding?`],
             choices: [
-              { label: "Hire now 🧑‍💻", effects: { Product: +6, Morale: +4, Funds: -3000 }, result: "Team gains energy; burn rate jumps." },
+              { label: "Hire now 🧑‍💻", effects: { Product: +6, Morale: +4, Funds: -5000 }, result: "Team gains energy; burn rate jumps." },
               { label: "Wait until funding ⏳", effects: { Funds: 0, Morale: -2 }, result: "Lean team keeps moving, but work piles up." }
             ]
           },
           {
             dialog: [`Ava: We're out of design bandwidth. Contract out or delay the feature?`],
             choices: [
-              { label: "Hire contractor 🎨", effects: { Product: +5, Funds: -2500 }, result: "Design looks great, budget feels lighter." },
+              { label: "Hire contractor 🎨", effects: { Product: +5, Funds: -4500 }, result: "Design looks great, budget feels lighter." },
               { label: "Delay feature 🐢", effects: { Product: -2, Morale: -1 }, result: "Team keeps focus, but users wait longer." }
             ]
           },
@@ -356,27 +432,27 @@ export default class OfficeScene extends Phaser.Scene {
             dialog: [`Ava: Do we launch in one country first or go global right away?`],
             choices: [
               { label: "One country first 🇺🇸", effects: { Product: +4, Hype: -2, Morale: +1 }, result: "Controlled launch keeps chaos down." },
-              { label: "Global launch 🌍", effects: { Hype: +10, Product: -4, Funds: -2000 }, result: "Massive attention, massive workload." }
+              { label: "Global launch 🌍", effects: { Hype: +10, Product: -4, Funds: -5000 }, result: "Massive attention, massive workload." }
             ]
           },
           {
             dialog: [`Ava: Should we switch to a cheaper cloud provider?`],
             choices: [
-              { label: "Yes, cut costs 💾", effects: { Funds: +4000, Product: -3 }, result: "Money saved; migration slows progress." },
+              { label: "Yes, cut costs 💾", effects: { Funds: +8000, Product: -3 }, result: "Money saved; migration slows progress." },
               { label: "Stay put for now 🛑", effects: { Product: +2, Funds: 0 }, result: "No disruptions, but costs remain high." }
             ]
           },
           {
             dialog: [`Ava: A conference wants us to speak. Should we attend?`],
             choices: [
-              { label: "Go present 🎤", effects: { Hype: +8, Funds: -1500 }, result: "Exposure grows; budget takes a hit." },
+              { label: "Go present 🎤", effects: { Hype: +8, Funds: -7500 }, result: "Exposure grows; budget takes a hit." },
               { label: "Skip and focus 🏗️", effects: { Product: +4, Morale: +1 }, result: "Team stays on track, no new leads." }
             ]
           },
           {
             dialog: [`Ava: The prototype backend is slow. Optimize now or after more features?`],
             choices: [
-              { label: "Optimize now ⚙️", effects: { Product: +8, Morale: +1, Funds: -1000 }, result: "Speed improves; roadmap slows slightly." },
+              { label: "Optimize now ⚙️", effects: { Product: +8, Morale: +1, Funds: -4000 }, result: "Speed improves; roadmap slows slightly." },
               { label: "Features first 🚀", effects: { Product: +5, Morale: -1 }, result: "More capabilities, but lag remains." }
             ]
           },
@@ -384,7 +460,7 @@ export default class OfficeScene extends Phaser.Scene {
             dialog: [`Ava: Customers want 24/7 support. Hire a team or use chatbots?`],
             choices: [
               { label: "Hire support team 📞", effects: { Morale: +5, Product: +2, Funds: -5000 }, result: "Better service; burn rate jumps." },
-              { label: "Deploy chatbots 🤖", effects: { Product: +3, Funds: -1000 }, result: "Cheap and quick; customers miss human touch." }
+              { label: "Deploy chatbots 🤖", effects: { Product: +3, Funds: -4000 }, result: "Cheap and quick; customers miss human touch." }
             ]
           },
           {
@@ -397,14 +473,14 @@ export default class OfficeScene extends Phaser.Scene {
           {
             dialog: [`Ava: A new intern applicant seems eager but inexperienced. Hire?`],
             choices: [
-              { label: "Hire and mentor 👩‍🎓", effects: { Morale: +6, Product: +2, Funds: -1000 }, result: "Fresh energy joins; training takes time." },
+              { label: "Hire and mentor 👩‍🎓", effects: { Morale: +6, Product: +2, Funds: -4000 }, result: "Fresh energy joins; training takes time." },
               { label: "Pass politely 🙅‍♀️", effects: { Product: +1 }, result: "Less distraction, no fresh ideas." }
             ]
           },
           {
             dialog: [`Ava: Should we start a company blog now or focus purely on product?`],
             choices: [
-              { label: "Start blog ✍️", effects: { Hype: +6, Product: -2, Funds: -500 }, result: "Content builds audience slowly." },
+              { label: "Start blog ✍️", effects: { Hype: +6, Product: -2, Funds: -3500 }, result: "Content builds audience slowly." },
               { label: "Focus on product 💻", effects: { Product: +4 }, result: "Fewer distractions, but slower brand growth." }
             ]
           }
@@ -413,9 +489,10 @@ export default class OfficeScene extends Phaser.Scene {
       {
         name: "Max",
         role: "CTO",
-        x: cx + 350,
+        x: cx + 50,
         y: cy - 200,
         spriteKey: "npc_max",
+        mood: 80,
         questions: [
           {
             dialog: [`Max: Hardcode and move fast, or do it right with tests?`],
@@ -510,6 +587,7 @@ export default class OfficeScene extends Phaser.Scene {
         x: cx - 150,
         y: cy + 200,
         spriteKey: "npc_liam",
+        mood: 80,
         questions: [
           {
             dialog: [`Liam: Landing page launch or pair-program refactor?`],
@@ -629,9 +707,473 @@ export default class OfficeScene extends Phaser.Scene {
     this.refreshHud();
   }
 
+
+buildCeoRoom() {
+  // Room size & position
+  const w = this.room.width;
+  const h = this.room.height;
+
+  const ceoWidth = Math.floor(w * 0.25);  // ~25% width
+  const ceoHeight = Math.floor(h * 0.35); // ~35% height
+  const roomX = 0;                         // Left side
+  const roomY = h - ceoHeight;              // Bottom side
+
+  const wallThickness = 8;
+  const doorHeight = 72;
+  const doorCenterY = roomY + Math.floor(ceoHeight / 2);
+
+  // Colliders group for walls
+  this.ceoSolids = this.physics.add.staticGroup();
+
+  // Helper for walls
+  const makeWall = (cx, cy, ww, hh) => {
+    const wall = this.physics.add.staticImage(cx, cy, "blackWall")
+      .setDisplaySize(ww, hh)
+      .setVisible(true);
+    wall.refreshBody();
+    this.ceoSolids.add(wall);
+    return wall;
+  };
+
+  // Floor
+  this.ceoFloor = this.add
+    .tileSprite(roomX, roomY, ceoWidth, ceoHeight, "floor64")
+    .setOrigin(0, 0)
+    .setDepth(-1);
+
+  // Walls: Top, Left, Bottom
+  makeWall(roomX + ceoWidth / 2, roomY + wallThickness / 2, ceoWidth, wallThickness); // Top
+  makeWall(roomX + wallThickness / 2, roomY + ceoHeight / 2, wallThickness, ceoHeight); // Left
+  makeWall(roomX + ceoWidth / 2, roomY + ceoHeight - wallThickness / 2, ceoWidth, wallThickness); // Bottom
+
+  // Right wall split for door gap
+  const rightX = roomX + ceoWidth - wallThickness / 2;
+  const gapTopEnd = doorCenterY - doorHeight / 2;
+  const gapBottomStart = doorCenterY + doorHeight / 2;
+
+  // Top segment of right wall
+  const topSegH = gapTopEnd - roomY;
+  if (topSegH > 0) {
+    makeWall(rightX, roomY + topSegH / 2, wallThickness, topSegH);
+  }
+
+  // Bottom segment of right wall
+  const bottomSegH = (roomY + ceoHeight) - gapBottomStart;
+  if (bottomSegH > 0) {
+    makeWall(rightX, gapBottomStart + bottomSegH / 2, wallThickness, bottomSegH);
+  }
+
+  // Desk in center of room
+  const deskCX = roomX + ceoWidth / 2;
+  const deskCY = roomY + ceoHeight / 2;
+
+  const desk = this.physics.add.staticImage(deskCX, deskCY, "desk")
+    .setOrigin(0.5, 0.5)
+    .setDepth(10);
+  desk.body.setSize(desk.width * 0.8, desk.height * 0.6)
+    .setOffset((desk.width - desk.width * 0.8) / 2, (desk.height - desk.height * 0.6) / 2);
+
+  // Chair in front of desk (facing toward door gap)
+  const chair = this.physics.add.staticImage(deskCX + 64, deskCY, "chair")
+    .setOrigin(0.5, 0.5)
+    .setDepth(9);
+  chair.body.setSize(chair.width * 0.7, chair.height * 0.7)
+    .setOffset((chair.width - chair.width * 0.7) / 2, (chair.height - chair.height * 0.7) / 2);
+
+  // Add desk/chair to solids
+  this.ceoSolids.add(desk);
+  this.ceoSolids.add(chair);
+
+  // Collisions
+  this.physics.add.collider(this.player, this.ceoSolids);
+
+  // Label
+  this.add.text(roomX + 14, roomY + 14, "CEO Office", {
+    fontFamily: "system-ui, sans-serif",
+    fontSize: "14px",
+    color: "#ffd27f",
+    backgroundColor: "rgba(34,24,0,0.4)",
+    padding: { left: 6, right: 6, top: 2, bottom: 2 }
+  }).setDepth(10);
+}
+
+
+  buildServerRoom() {
+    // Smaller server room at top-right
+    const w = this.room.width;
+    const h = this.room.height;
+
+    const serverWidth  = Math.floor(w * 0.25);   // ~25% width
+    const serverHeight = Math.floor(h * 0.35);   // ~35% height
+    const roomX = w - serverWidth;
+    const roomY = 0;
+
+    const wallThickness = 8;
+    const doorHeight = 72;
+    const doorCenterY = roomY + Math.floor(serverHeight * 0.6);
+
+    // Helper to make wall segments
+    const makeWall = (cx, cy, ww, hh) => {
+      const wall = this.physics.add.staticImage(cx, cy, "blackWall")
+        .setDisplaySize(ww, hh)
+        .setVisible(true);
+      wall.refreshBody();
+      this.serverSolids.add(wall);
+      return wall;
+    };
+
+    // Floor
+    this.serverFloor = this.add
+      .tileSprite(roomX, roomY, serverWidth, serverHeight, "server_floor64")
+      .setOrigin(0, 0)
+      .setDepth(-1);
+
+    // Colliders group
+    this.serverSolids = this.physics.add.staticGroup();
+
+    // Top / Right / Bottom walls
+    makeWall(roomX + serverWidth / 2, roomY + wallThickness / 2, serverWidth, wallThickness);
+    makeWall(roomX + serverWidth - wallThickness / 2, roomY + serverHeight / 2, wallThickness, serverHeight);
+    makeWall(roomX + serverWidth / 2, roomY + serverHeight - wallThickness / 2, serverWidth, wallThickness);
+
+    // Left wall split into two segments (gap instead of a door)
+    const leftX = roomX + wallThickness / 2;
+    const gapTopEnd    = doorCenterY - doorHeight / 2;
+    const gapBottomStart = doorCenterY + doorHeight / 2;
+
+    const topSegH = gapTopEnd - roomY;
+    if (topSegH > 0) {
+      makeWall(leftX, roomY + topSegH / 2, wallThickness, topSegH);
+    }
+
+    const bottomSegH = (roomY + serverHeight) - gapBottomStart;
+    if (bottomSegH > 0) {
+      makeWall(leftX, gapBottomStart + bottomSegH / 2, wallThickness, bottomSegH);
+    }
+
+    // Server racks inside (4 total: 2 columns x 2 rows)
+    this.serverFixtures = this.physics.add.staticGroup();
+    const cols = 2, rows = 2;
+    const padX = 50;
+    const padY = 30;
+    const startX = roomX + 50;
+    const startY = roomY + 50;
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const rack = this.physics.add.staticImage(
+          startX + c * (56 + padX),
+          startY + r * (96 + padY),
+          "server_rack"
+        ).setOrigin(0.5, 0.5);
+        rack.refreshBody();
+        this.serverFixtures.add(rack);
+      }
+    }
+
+    // Collisions
+    this.physics.add.collider(this.player, this.serverSolids);
+    this.physics.add.collider(this.player, this.serverFixtures);
+
+    // Label
+    this.add.text(roomX + 14, roomY + 14, "Server Room", {
+      fontFamily: "system-ui, sans-serif",
+      fontSize: "14px",
+      color: "#a8c8ff",
+      backgroundColor: "rgba(10,16,34,0.4)",
+      padding: { left: 6, right: 6, top: 2, bottom: 2 }
+    }).setDepth(10);
+
+    // Optional prompt zone near opening
+    this.serverDoorZone = this.add.zone(roomX - 20, doorCenterY, 60, 80).setOrigin(1, 0.5);
+    this.physics.world.enable(this.serverDoorZone, Phaser.Physics.Arcade.STATIC_BODY);
+  }
+
+  showInvestmentPanel() {
+    if (this.investmentActive) return;
+
+    const funds = this.registry.get("Funds") || 0;
+    const maxBudget = Math.max(2000, Math.floor(funds * 0.25 / 1000) * 1000);
+    if (funds <= 0) return;
+
+    this.investmentActive = true;
+    this.dialogActive = true;
+    this.player.setVelocity(0, 0);
+
+    this.alloc = { Mkt: 0, Tech: 0, Hire: 0 };
+    this.maxBudget = Math.min(maxBudget, funds);
+
+    const panelW = 600;
+    const panelH = 400;
+    const px = (this.scale.width - panelW) / 2;
+    const py = (this.scale.height - panelH) / 2;
+
+    // Background
+    this.invG = this.add.graphics().setScrollFactor(0).setDepth(4000);
+    this.invG.fillStyle(0x0b132a, 0.92).fillRoundedRect(px, py, panelW, panelH, 16);
+    this.invG.lineStyle(2, 0x2c3966, 1).strokeRoundedRect(px, py, panelW, panelH, 16);
+
+    this.invTitle = this.add.text(
+      px + panelW / 2, py + 16,
+      `Week ${this.registry.get("week")}: Allocate Investments`,
+      { fontFamily: "system-ui", fontSize: "20px", color: "#ffffff" }
+    ).setOrigin(0.5, 0).setScrollFactor(0).setDepth(4001);
+
+    const categories = [
+      { key: "Mkt", label: "Marketing", icon: "📢" },
+      { key: "Tech", label: "Tech", icon: "💻" },
+      { key: "Hire", label: "Hiring", icon: "🧑‍💼" }
+    ];
+
+    const startX = px + 100;
+    const startY = py + 80;
+    const colSpacing = 160;
+
+    this.invButtons = [];
+
+    categories.forEach((cat, i) => {
+      const cx = startX + i * colSpacing;
+
+      // Icon
+      this.add.text(cx, startY, cat.icon, {
+        fontFamily: "sans-serif", fontSize: "48px", color: "#ffffff"
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(4001);
+
+      // Label
+      this.add.text(cx, startY + 50, cat.label, {
+        fontFamily: "system-ui", fontSize: "16px", color: "#a8c8ff"
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(4001);
+
+      // Current allocation text
+      const allocText = this.add.text(cx, startY + 80, "$0", {
+        fontFamily: "system-ui", fontSize: "16px", color: "#ffffff"
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(4001);
+
+      // Invest button
+      const investBtn = this.add.text(cx, startY + 110, "+ Invest $1k", {
+        fontFamily: "system-ui", fontSize: "14px", color: "#00ff00",
+        backgroundColor: "#003300", padding: { left: 8, right: 8, top: 4, bottom: 4 }
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(4001).setInteractive();
+      investBtn.on("pointerdown", () => {
+        const sum = this.alloc.Mkt + this.alloc.Tech + this.alloc.Hire;
+        if (sum + 1000 <= this.maxBudget) {
+          this.alloc[cat.key] += 1000;
+          allocText.setText(`$${this.formatNum(this.alloc[cat.key])}`);
+          this.updateInvestmentPreview();
+        }
+      });
+
+      // Remove button
+      const removeBtn = this.add.text(cx, startY + 140, "- Remove $1k", {
+        fontFamily: "system-ui", fontSize: "14px", color: "#ff5555",
+        backgroundColor: "#330000", padding: { left: 8, right: 8, top: 4, bottom: 4 }
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(4001).setInteractive();
+      removeBtn.on("pointerdown", () => {
+        if (this.alloc[cat.key] >= 1000) {
+          this.alloc[cat.key] -= 1000;
+          allocText.setText(`$${this.formatNum(this.alloc[cat.key])}`);
+          this.updateInvestmentPreview();
+        }
+      });
+
+      this.invButtons.push({ allocText });
+    });
+
+    // Preview effects
+    this.invPreview = this.add.text(
+      px + panelW / 2, py + panelH - 80, "",
+      { fontFamily: "system-ui", fontSize: "16px", color: "#a8ffc8" }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(4001);
+
+    // Confirm button
+    const confirmBtn = this.add.text(px + panelW / 2 - 80, py + panelH - 40, "Confirm", {
+      fontFamily: "system-ui", fontSize: "16px", color: "#ffffff",
+      backgroundColor: "#004400", padding: { left: 12, right: 12, top: 6, bottom: 6 }
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(4001).setInteractive();
+    confirmBtn.on("pointerdown", () => this.confirmInvestment());
+
+    // Skip button
+    const skipBtn = this.add.text(px + panelW / 2 + 80, py + panelH - 40, "Skip", {
+      fontFamily: "system-ui", fontSize: "16px", color: "#ffffff",
+      backgroundColor: "#440000", padding: { left: 12, right: 12, top: 6, bottom: 6 }
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(4001).setInteractive();
+    skipBtn.on("pointerdown", () => {
+      this.closeInvestmentPanel(false);
+
+    });
+
+    this.updateInvestmentPreview();
+  }
+
+  updateInvestmentPreview() {
+    const eff = {
+      Hype: Math.round((this.alloc.Mkt / 1000) * 2),
+      Product: Math.round((this.alloc.Tech / 1000) * 1.5 + (this.alloc.Hire / 1000) * 0.5),
+      Morale: Math.round((this.alloc.Hire / 1000) * 2 - Math.floor(this.alloc.Mkt / 4000))
+    };
+    const parts = [];
+    if (eff.Product) parts.push(`${eff.Product > 0 ? "+" : ""}${eff.Product} Product`);
+    if (eff.Morale) parts.push(`${eff.Morale > 0 ? "+" : ""}${eff.Morale} Morale`);
+    if (eff.Hype) parts.push(`${eff.Hype > 0 ? "+" : ""}${eff.Hype} Hype`);
+    this.invPreview.setText(`Projected: ${parts.length ? parts.join(", ") : "No change"}`);
+  }
+
+
+  adjustAlloc(key, delta) {
+    const sum = this.alloc.Mkt + this.alloc.Tech + this.alloc.Hire;
+    if (delta > 0 && sum + delta > this.maxBudget) return;
+    this.alloc[key] = Math.max(0, this.alloc[key] + delta);
+  }
+
+  updateInvestmentPanel() {
+    const sum = this.alloc.Mkt + this.alloc.Tech + this.alloc.Hire;
+    const remain = this.maxBudget - sum;
+
+    // Preview effects (per $1k):
+    // Mkt: +2 Hype, -1 Morale per $4k
+    // Tech: +1.5 Product
+    // Hire: +2 Morale, +0.5 Product
+    const eff = {
+      Hype: Math.round((this.alloc.Mkt / 1000) * 2),
+      Product: Math.round((this.alloc.Tech / 1000) * 1.5 + (this.alloc.Hire / 1000) * 0.5),
+      Morale: Math.round((this.alloc.Hire / 1000) * 2 - Math.floor(this.alloc.Mkt / 4000))
+    };
+
+    this.invBudget.setText(`Budget: $${this.formatNum(this.maxBudget)}  •  Remaining: $${this.formatNum(remain)}`);
+    this.invLines.setText([
+      `1/Q  Marketing: $${this.formatNum(this.alloc.Mkt)}`,
+      `2/W  Tech:      $${this.formatNum(this.alloc.Tech)}`,
+      `3/E  Hiring:    $${this.formatNum(this.alloc.Hire)}`,
+      `Total Invest:  $${this.formatNum(sum)}`
+    ]);
+
+    const parts = [];
+    if (eff.Product) parts.push(`${eff.Product > 0 ? "+" : ""}${eff.Product} Product`);
+    if (eff.Morale) parts.push(`${eff.Morale > 0 ? "+" : ""}${eff.Morale} Morale`);
+    if (eff.Hype) parts.push(`${eff.Hype > 0 ? "+" : ""}${eff.Hype} Hype`);
+    this.invPreview.setText(`Projected: ${parts.length ? parts.join(", ") : "No change"}`);
+  }
+
+  confirmInvestment() {
+    
+    const prevStats = {
+      Funds: this.registry.get("Funds"),
+      Product: this.registry.get("Product"),
+      Morale: this.registry.get("Morale"),
+      Hype: this.registry.get("Hype")
+    };
+    const sum = this.alloc.Mkt + this.alloc.Tech + this.alloc.Hire;
+    if (sum <= 0) return this.closeInvestmentPanel(false);
+
+    // Deduct funds
+    this.registry.set("Funds", Math.max(0, (this.registry.get("Funds") || 0) - sum));
+
+    // Apply effects (clamped by existing helpers)
+    const eff = {
+      Product: Math.round((this.alloc.Tech / 1000) * 1.5 + (this.alloc.Hire / 1000) * 0.5),
+      Morale:  Math.round((this.alloc.Hire / 1000) * 2 - Math.floor(this.alloc.Mkt / 4000)),
+      Hype:    Math.round((this.alloc.Mkt / 1000) * 2)
+    };
+    this.applyEffects(eff);
+    this.refreshHud(prevStats);
+
+    // Save last allocation for QoL
+    this.registry.set("lastAlloc", { ...this.alloc });
+
+    // Small confirmation popup in the dialog box style
+    const summary = `Invested $${this.formatNum(sum)} — Effects: ${this.effectsToString(eff)}`;
+    this.prompt.setAlpha(1).setText(summary);
+    this.time.delayedCall(1200, () => this.prompt.setAlpha(0));
+
+    this.closeInvestmentPanel(true);
+  }
+
+  closeInvestmentPanel(confirmed) {
+    // Destroy graphics/text/buttons
+    if (this.invG) this.invG.destroy();
+    if (this.invTitle) this.invTitle.destroy();
+    if (this.invPreview) this.invPreview.destroy();
+    if (this.invButtons) {
+      this.invButtons.forEach(btn => {
+        if (btn.allocText) btn.allocText.destroy();
+      });
+    }
+    // Destroy any stray category labels/icons
+    this.children.list
+      .filter(obj => obj.depth === 4001)
+      .forEach(obj => obj.destroy());
+
+    // Reset flags
+    this.investmentActive = false;
+    this.dialogActive = false;
+
+    
+      if (this.registry.get("week") === 6) {
+        this.showBugNotification();
+      }
+      else{
+        let liam = this.npcs.find(n => n.name === "Liam");
+        console.log(liam);
+        console.log(liam.mood);
+        if (liam && liam.mood < 30) {
+        this.showCleanupNotification();
+        }
+      }
+  }
+
+  showBugNotification() {
+    this.dialogActive = true;
+
+    const panelW = 500;
+    const panelH = 200;
+    const px = (this.scale.width - panelW) / 2;
+    const py = (this.scale.height - panelH) / 2;
+
+    // Background
+    const notifG = this.add.graphics().setScrollFactor(0).setDepth(5000);
+    notifG.fillStyle(0x1a1a1a, 0.95).fillRoundedRect(px, py, panelW, panelH, 12);
+    notifG.lineStyle(2, 0xffffff, 1).strokeRoundedRect(px, py, panelW, panelH, 12);
+
+    // Title
+    const title = this.add.text(
+      px + panelW / 2, py + 15, "⚠️ Server Room Threat!",
+      { fontFamily: "system-ui", fontSize: "20px", color: "#ff6666" }
+    ).setOrigin(0.5).setDepth(5001).setScrollFactor(0);
+
+    // Message
+    const msg = this.add.text(
+      px + 20, py + 50,
+      "Bugs are trying to enter your server room!\n" +
+      "Click them before they get inside.\n" +
+      "Each bug that enters will cost you $10,000!",
+      { fontFamily: "system-ui", fontSize: "16px", color: "#ffffff", wordWrap: { width: panelW - 40 } }
+    ).setDepth(5001).setScrollFactor(0);
+
+    // OK button
+    const okBtn = this.add.text(
+      px + panelW / 2, py + panelH - 40, "OK - Let's Go!",
+      { fontFamily: "system-ui", fontSize: "18px", color: "#00ff00",
+        backgroundColor: "#003300", padding: { left: 12, right: 12, top: 6, bottom: 6 } }
+    ).setOrigin(0.5).setInteractive().setDepth(5001).setScrollFactor(0);
+
+    okBtn.on("pointerdown", () => {
+      notifG.destroy();
+      title.destroy();
+      msg.destroy();
+      okBtn.destroy();
+      this.dialogActive = false;
+      this.startBugMiniGame();
+    });
+  }
+
+
+
+
+
+
   drawHudPanel() {
     const w = Math.min(360, Math.max(260, this.scale.width * 0.26));
-    const h = 120;
+    const h = 140;
     this.hudPanel.clear();
     this.hudPanel
       .fillStyle(0x0b132a, 0.75)
@@ -640,19 +1182,51 @@ export default class OfficeScene extends Phaser.Scene {
       .strokeRoundedRect(8, 8, w, h, 12);
   }
 
-  refreshHud() {
-    const F = this.registry.get("Funds");
-    const P = this.registry.get("Product");
-    const M = this.registry.get("Morale");
-    const H = this.registry.get("Hype");
+refreshHud(prevStats) {
+  const F = this.registry.get("Funds");
+  const P = this.registry.get("Product");
+  const M = this.registry.get("Morale");
+  const H = this.registry.get("Hype");
 
-    this.hudStats.setText([
-      `💰 Funds: $${this.formatNum(F)}`,
-      `💻 Product: ${P}%`,
-      `😅 Morale: ${M}%`,
-      `📈 Hype: ${H}%`
-    ]);
+  // If we got a previous stats object, calculate deltas
+  const deltas = {};
+  if (prevStats) {
+    deltas.Funds   = F - prevStats.Funds;
+    deltas.Product = P - prevStats.Product;
+    deltas.Morale  = M - prevStats.Morale;
+    deltas.Hype    = H - prevStats.Hype;
   }
+  console.log(deltas)
+
+  // Build the HUD lines with optional +/-
+  const lines = [
+    `💰 Funds: $${this.formatNum(F)}${this.formatDelta(deltas.Funds)}`,
+    `💻 Product: ${P}%${this.formatDelta(deltas.Product)}`,
+    `😅 Morale: ${M}%${this.formatDelta(deltas.Morale)}`,
+    `📈 Hype: ${H}%${this.formatDelta(deltas.Hype)}`
+  ];
+
+  this.hudStats.setText(lines);
+
+  // Remove the deltas after 5 seconds
+  if (prevStats) {
+    this.time.delayedCall(3000, () => {
+      this.hudStats.setText([
+        `💰 Funds: $${this.formatNum(F)}`,
+        `💻 Product: ${P}%`,
+        `😅 Morale: ${M}%`,
+        `📈 Hype: ${H}%`
+      ]);
+    });
+  }
+}
+
+// Helper to format +/-
+formatDelta(val) {
+  if (val === undefined || val === 0) return "";
+  return val > 0 ? `  (+${this.formatNum(val)})` : `  (${this.formatNum(val)})`;
+}
+
 
   formatNum(n) {
     try {
@@ -728,7 +1302,11 @@ export default class OfficeScene extends Phaser.Scene {
   }
 
   choose(choice) {
-    this.applyEffects(choice.effects);
+      this.applyEffects(choice.effects);
+      this.activeNpc.mood = Phaser.Math.Clamp(
+      this.activeNpc.mood + Phaser.Math.Between(-40, 10), // random change
+      0, 100
+    );
     this.refreshHud();
 
     // Increment question progress
@@ -862,25 +1440,52 @@ export default class OfficeScene extends Phaser.Scene {
   }
 
   // ----- Auto next week & ending checks -----
-  autoAdvanceWeek() {
-    const total = this.registry.get("weeksTotal") || 12;
-    let week = this.registry.get("week") || 1;
-    week += 1;
+autoAdvanceWeek() {
+  const total = this.registry.get("weeksTotal") || 12;
+  let week = this.registry.get("week") || 1;
+  week += 1;
 
-    this.cameras.main.fadeOut(350, 0, 0, 0, (_, progress) => {
-      if (progress === 1) {
-        if (week > total) {
-          this.gotoEnd("final");
-          return;
-        }
-        this.registry.set("week", week);
-        this.npcTalkedThisWeek = {};
-        this.registry.set("npcTalkedThisWeek", {});
-        this.updateWeekText();
-        this.cameras.main.fadeIn(350, 0, 0, 0);
+  this.cameras.main.fadeOut(350, 0, 0, 0, (_, progress) => {
+    if (progress === 1) {
+      if (week > total) {
+        this.gotoEnd("final");
+        return;
       }
-    });
-  }
+
+      this.registry.set("week", week);
+      this.npcTalkedThisWeek = {};
+      this.registry.set("npcTalkedThisWeek", {});
+      this.updateWeekText();
+
+      // Founder visit week?
+      if (week % 3 === 0 && week <= 12) {
+        let founderIndex = (week / 3) - 1;
+        if (this.founders && this.founders[founderIndex]) {
+          this.cameras.main.fadeIn(350, 0, 0, 0);
+          this.time.delayedCall(350, () => {
+            this.startFounderConversation(
+              this.founders[founderIndex],
+              week,
+              () => {
+                if (week === 12) {
+                  this.gotoEnd("final"); // Week 12 ends game
+                } else {
+                  this.showInvestmentPanel(); // After talking, show panel
+                }
+              }
+            );
+          });
+          return; // Prevent immediate investment panel
+        }
+      }
+
+      // Normal non-founder week flow
+      this.cameras.main.fadeIn(350, 0, 0, 0);
+      this.time.delayedCall(350, () => this.showInvestmentPanel());
+    }
+  });
+}
+
 
   checkImmediateEnd() {
     if ((this.registry.get("Funds") || 0) <= 0) {
@@ -929,10 +1534,289 @@ export default class OfficeScene extends Phaser.Scene {
     }
   }
 
+  loseFundsForBug(bug) {
+    if (!bug.active) return;
+    bug.destroy();
+    
+    const prevStats = {
+      Funds: this.registry.get("Funds"),
+      Product: this.registry.get("Product"),
+      Morale: this.registry.get("Morale"),
+      Hype: this.registry.get("Hype")
+    };
+    this.registry.set("Funds", Math.max(0, this.registry.get("Funds") - 10000));
+    this.refreshHud(prevStats);
+    console.log("one bug entered")
+    this.bugsDefeated++;
+    if (this.bugsDefeated >= this.bugCount) {
+      this.endBugMiniGame();
+    }
+  }
+
+  endBugMiniGame() {
+    this.bugActive = false;
+    this.dialogActive = false;
+    this.bugs.clear(true, true);
+    if (this.bugTimer) this.bugTimer.remove(false);
+
+    this.prompt.setAlpha(1).setText("Bug invasion over!");
+    this.time.delayedCall(1500, () => this.prompt.setAlpha(0));
+  }
+
+  spawnBug() {
+    const roomX = this.room.width - Math.floor(this.room.width * 0.25);
+    const doorY = Math.floor(this.room.height * 0.35) * 0.6;
+
+    const spawnX = roomX - 200; 
+    const spawnY = doorY + Phaser.Math.Between(-50, 50);
+
+    const bug = this.bugs.create(spawnX, spawnY, "bug")
+      .setOrigin(0.5)
+      .setScale(1.5)
+      .setDepth(10)
+      .setInteractive(); // <-- Make it clickable
+
+    // On click, squash it
+    bug.on("pointerdown", () => {
+      bug.destroy();
+      this.bugsDefeated++;
+      if (this.bugsDefeated >= this.bugCount) {
+        this.endBugMiniGame();
+      }
+    });
+
+    // Move toward door
+    this.physics.moveTo(bug, roomX - 10, doorY, 60);
+
+    // Check if bug reached inside
+    bug.update = () => {
+      const dist = Phaser.Math.Distance.Between(bug.x, bug.y, roomX, doorY);
+      if (dist < 15) {
+        this.loseFundsForBug(bug);
+      }
+    };
+  }
+
+
+  startBugMiniGame() {
+    this.bugCount = 5;
+    this.bugsDefeated = 0;
+    this.bugs = this.physics.add.group();
+    this.bugActive = true;
+    this.dialogActive = true; // freeze normal interactions
+
+    // Spawn bugs every 1s
+    this.bugTimer = this.time.addEvent({
+      delay: 1000,
+      repeat: this.bugCount - 1,
+      callback: () => this.spawnBug()
+    });
+
+  }
+
+
+  showCleanupNotification() {
+    const panelW = 500;
+    const panelH = 200;
+    const px = (this.scale.width - panelW) / 2;
+    const py = (this.scale.height - panelH) / 2;
+
+    const bg = this.add.graphics().setDepth(5000).setScrollFactor(0);
+    bg.fillStyle(0x222222, 0.95).fillRoundedRect(px, py, panelW, panelH, 12);
+    bg.lineStyle(2, 0xffffff).strokeRoundedRect(px, py, panelW, panelH, 12);
+
+    const title = this.add.text(
+      px + panelW / 2, py + 15,
+      "🧹 Emergency Office Cleanup!",
+      { fontFamily: "system-ui", fontSize: "20px", color: "#ffcc00" }
+    ).setOrigin(0.5).setDepth(5001);
+
+    const msg = this.add.text(
+      px + 20, py + 60,
+      "Liam’s freaking out — trash is everywhere!\n" +
+      "Click ALL the trash before the timer runs out.\n" +
+      "If you don’t… the codebase will be a bug nest 🐛💻\n" +
+      "Win: + Morale, + Liam Mood | Lose: -Morale, -Liam Mood",
+      { fontFamily: "system-ui", fontSize: "16px", color: "#ffffff", wordWrap: { width: panelW - 40 } }
+    ).setDepth(5001);
+
+    const okBtn = this.add.text(
+      px + panelW / 2, py + panelH - 40,
+      "OK - Let's Clean!",
+      { fontFamily: "system-ui", fontSize: "18px", color: "#00ff00", backgroundColor: "#003300", padding: { left: 12, right: 12, top: 6, bottom: 6 } }
+    ).setOrigin(0.5).setInteractive().setDepth(5001);
+
+    okBtn.on("pointerdown", () => {
+      bg.destroy();
+      title.destroy();
+      msg.destroy();
+      okBtn.destroy();
+      this.startCleanupMiniGame();
+    });
+  }
+
+
+  startCleanupMiniGame() {
+    this.cleanupActive = true;
+    this.trashGroup = this.add.group();
+    this.trashToClean = 6; // Number of trash items
+
+    for (let i = 0; i < this.trashToClean; i++) {
+      const x = Phaser.Math.Between(100, this.scale.width - 100);
+      const y = Phaser.Math.Between(150, this.scale.height - 100);
+      
+      const trash = this.add.sprite(x, y, "trash_paper") // you can load a trash image or use a placeholder
+        .setInteractive()
+        .setScale(0.5)
+        .setDepth(100);
+
+      trash.on("pointerdown", () => {
+        trash.destroy();
+        this.trashToClean--;
+        if (this.trashToClean <= 0) {
+          this.endCleanupMiniGame(true);
+        }
+      });
+
+      this.trashGroup.add(trash);
+    }
+
+    // Timer for cleanup (15 seconds)
+    this.time.delayedCall(15000, () => {
+      if (this.cleanupActive) {
+        this.endCleanupMiniGame(false);
+      }
+    });
+  }
+
+  endCleanupMiniGame(success) {
+    this.cleanupActive = false;
+    this.trashGroup.clear(true, true);
+
+    if (success) {
+      this.registry.set("Morale", (this.registry.get("Morale") || 0) + 10);
+      this.registry.set("LiamMood", (this.registry.get("LiamMood") || 0) + 20);
+      this.showTempMessage("✅ Cleanup Complete! +Morale +Liam Mood");
+    } else {
+      this.registry.set("Morale", (this.registry.get("Morale") || 0) - 5);
+      this.registry.set("LiamMood", (this.registry.get("LiamMood") || 0) - 10);
+      this.showTempMessage("❌ Too Slow! -Morale -Liam Mood");
+    }
+
+    this.refreshHud();
+  }
+
+  // Temporary on-screen message
+  showTempMessage(text) {
+    const msg = this.add.text(this.scale.width / 2, 50, text, {
+      fontFamily: "system-ui", fontSize: "20px", color: "#ffffff", backgroundColor: "#000000"
+    }).setOrigin(0.5).setDepth(5002);
+
+    this.time.delayedCall(2000, () => msg.destroy());
+  }
+
+  checkFounderVisit() {
+    let week = this.registry.get("week");
+
+    if (week % 3 === 0 && week <= 12) {
+      let founderIndex = (week / 3) - 1;
+      if (this.founders[founderIndex]) {
+        this.startFounderConversation(this.founders[founderIndex], week);
+      }
+    }
+  }
+
+
+startFounderConversation(founder, week, onComplete) {
+  const stats = {
+    Funds: this.registry.get("Funds") || 0,
+    Product: this.registry.get("Product") || 0,
+    Morale: this.registry.get("Morale") || 0,
+    Hype: this.registry.get("Hype") || 0
+  };
+
+  const tipObj = founder.tips.find(t => t.condition(stats));
+
+  // Dark overlay
+  const overlay = this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x000000, 0.5)
+    .setOrigin(0, 0)
+    .setDepth(2000);
+
+  // Dialog box
+  const dialogBoxHeight = 150;
+  const dialogBoxY = this.scale.height - dialogBoxHeight / 2;
+  const dialogBox = this.add.rectangle(
+    this.scale.width / 2,
+    dialogBoxY,
+    this.scale.width - 100,
+    dialogBoxHeight,
+    0xffffff
+  ).setStrokeStyle(2, 0x000000)
+   .setDepth(2001);
+
+  // Portrait positioned so its bottom edge is just above the dialog box
+  const portrait = this.add.image(
+    120,
+    dialogBoxY - dialogBoxHeight / 2 + 30, // 10px gap above box
+    founder.imageKey
+  ).setOrigin(0.5, 1) // bottom-center anchor
+   .setDepth(2001)
+   .setScale(0.5);
+
+  // Dialog text
+  const dialogText = this.add.text(
+    dialogBox.x - dialogBox.width / 2 + 20,
+    dialogBox.y - 60,
+    `${founder.name}: ${tipObj.text}`,
+    {
+      fontFamily: "Arial",
+      fontSize: "18px",
+      color: "#000000",
+      wordWrap: { width: dialogBox.width - 40 }
+    }
+  ).setDepth(2002);
+
+  // Continue button
+  const continueBtn = this.add.text(
+    dialogBox.x + dialogBox.width / 2 - 80,
+    dialogBox.y + 50,
+    "Continue",
+    {
+      fontFamily: "Arial",
+      fontSize: "18px",
+      color: "#0000ff"
+    }
+  ).setDepth(2002).setInteractive();
+
+  continueBtn.on("pointerdown", () => {
+    overlay.destroy();
+    portrait.destroy();
+    dialogBox.destroy();
+    dialogText.destroy();
+    continueBtn.destroy();
+
+    if (onComplete) onComplete();
+  });
+}
+
+
+
   // ----- Frame loop -----
   update() {
     // Which NPC is near?
     let near = null;
+    if (this.investmentActive) {
+      this.player.setVelocity(0,0);
+      return; // block the rest of update()
+    }
+
+    if (this.bugActive) {
+      this.bugs.children.each(b => {
+        if (b.update) b.update();
+      });
+      return; // prevent normal gameplay during mini-game
+    }
+
     for (let { zone, npc } of this.interactZones) {
       if (this.physics.overlap(this.player, zone)) {
         near = npc;
@@ -1013,6 +1897,19 @@ export default class OfficeScene extends Phaser.Scene {
         this.advanceOrComplete();
       }
     }
+
+    this.npcSprites.forEach(({ sprite, label, moodBarBg, moodBarFill, npc }) => {
+    label.setPosition(sprite.x, sprite.y - 40);
+    moodBarBg.setPosition(sprite.x, sprite.y - 28);
+    moodBarFill.setPosition(sprite.x - 25, sprite.y - 28);
+    moodBarFill.width = (npc.mood / 100) * 50;
+
+    // Change color based on mood
+    if (npc.mood > 66) moodBarFill.setFillStyle(0x00ff00);
+    else if (npc.mood > 33) moodBarFill.setFillStyle(0xffff00);
+    else moodBarFill.setFillStyle(0xff0000);
+  });
+
   }
 
   // ----- Misc -----
