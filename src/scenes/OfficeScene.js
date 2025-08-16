@@ -277,6 +277,13 @@ export default class OfficeScene extends Phaser.Scene {
       SPACE: Phaser.Input.Keyboard.KeyCodes.SPACE
     });
 
+    this.escapeKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    this.escapeKey.on('down', () => {
+    this.registry.set('hasSave', true);
+    this.scene.stop();
+      this.scene.start('MenuScene');
+    });
+
     // ----- Camera -----
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
 
@@ -1108,7 +1115,7 @@ buildCeoRoom() {
     this.dialogActive = false;
 
     
-      if (this.registry.get("week") === 6) {
+      if (this.registry.get("week") === 2) {
         this.showBugNotification();
       }
       else{
@@ -1304,7 +1311,7 @@ formatDelta(val) {
   choose(choice) {
       this.applyEffects(choice.effects);
       this.activeNpc.mood = Phaser.Math.Clamp(
-      this.activeNpc.mood + Phaser.Math.Between(-40, 10), // random change
+      this.activeNpc.mood + Phaser.Math.Between(-30, 10), // random change
       0, 100
     );
     this.refreshHud();
@@ -1663,7 +1670,7 @@ autoAdvanceWeek() {
   startCleanupMiniGame() {
     this.cleanupActive = true;
     this.trashGroup = this.add.group();
-    this.trashToClean = 6; // Number of trash items
+    this.trashToClean = 8; // Number of trash items
 
     for (let i = 0; i < this.trashToClean; i++) {
       const x = Phaser.Math.Between(100, this.scale.width - 100);
@@ -1749,12 +1756,11 @@ startFounderConversation(founder, week, onComplete) {
 
   const tipObj = founder.tips.find(t => t.condition(stats));
 
-  // Dark overlay
+  // --- overlay + dialog ---
   const overlay = this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x000000, 0.5)
     .setOrigin(0, 0)
     .setDepth(2000);
 
-  // Dialog box
   const dialogBoxHeight = 150;
   const dialogBoxY = this.scale.height - dialogBoxHeight / 2;
   const dialogBox = this.add.rectangle(
@@ -1766,16 +1772,14 @@ startFounderConversation(founder, week, onComplete) {
   ).setStrokeStyle(2, 0x000000)
    .setDepth(2001);
 
-  // Portrait positioned so its bottom edge is just above the dialog box
   const portrait = this.add.image(
     120,
-    dialogBoxY - dialogBoxHeight / 2 + 30, // 10px gap above box
+    dialogBoxY - dialogBoxHeight / 2 + 30,
     founder.imageKey
-  ).setOrigin(0.5, 1) // bottom-center anchor
+  ).setOrigin(0.5, 1)
    .setDepth(2001)
    .setScale(0.5);
 
-  // Dialog text
   const dialogText = this.add.text(
     dialogBox.x - dialogBox.width / 2 + 20,
     dialogBox.y - 60,
@@ -1788,7 +1792,6 @@ startFounderConversation(founder, week, onComplete) {
     }
   ).setDepth(2002);
 
-  // Continue button
   const continueBtn = this.add.text(
     dialogBox.x + dialogBox.width / 2 - 80,
     dialogBox.y + 50,
@@ -1800,16 +1803,29 @@ startFounderConversation(founder, week, onComplete) {
     }
   ).setDepth(2002).setInteractive();
 
-  continueBtn.on("pointerdown", () => {
+  // Handler we can call from both click and keypress
+  const finishFounderDialog = () => {
     overlay.destroy();
     portrait.destroy();
     dialogBox.destroy();
     dialogText.destroy();
     continueBtn.destroy();
 
+    // remove the key listener
+    this.input.keyboard.off('keydown-E', finishFounderDialog);
+    this.input.keyboard.off('keydown-SPACE', finishFounderDialog);
+
     if (onComplete) onComplete();
-  });
+  };
+
+  // Click on button
+  continueBtn.on("pointerdown", finishFounderDialog);
+
+  // 🔑 Also allow pressing E or SPACE to continue
+  this.input.keyboard.on('keydown-E', finishFounderDialog);
+  this.input.keyboard.on('keydown-SPACE', finishFounderDialog);
 }
+
 
 
 

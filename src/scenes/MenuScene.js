@@ -26,24 +26,44 @@ export default class MenuScene extends Phaser.Scene {
       color: "#cfe0ff"
     }).setOrigin(0.5);
 
-    // Buttons
-    this.createButton(width / 2, height * 0.42, "Start New Game", () => {
-      this.registry.set("week", 1);
-      this.registry.set("npcTalkedThisWeek", {}); // reset weekly talks
-      this.registry.set("Funds", 50000);
-      this.registry.set("Product", 20);
-      this.registry.set("Morale", 70);
-      this.registry.set("Hype", 10);
-      this.scene.start("OfficeScene");
-    });
+    // If we left the game in progress via ESC, show a Continue button
+    if (this.registry.get("hasSave")) {
+      this.createButton(width / 2, height * 0.38, "Continue", () => {
+        // simply return to the OfficeScene (registry values are already preserved)
+        this.scene.start("OfficeScene");
+      });
 
-    // Go to SettingsScene (name editing happens there)
-    this.createButton(width / 2, height * 0.52, "Settings", () => {
+      this.createButton(width / 2, height * 0.50, "Start New Game", () => {
+        // reset progress and clear the save flag
+        this.registry.set("hasSave", false);
+        this.registry.set("week", 1);
+        this.registry.set("npcTalkedThisWeek", {});
+        this.registry.set("Funds", 50000);
+        this.registry.set("Product", 20);
+        this.registry.set("Morale", 70);
+        this.registry.set("Hype", 10);
+        this.scene.start("OfficeScene");
+      });
+    } else {
+      // No save => only show Start New Game
+      this.createButton(width / 2, height * 0.42, "Start New Game", () => {
+        this.registry.set("week", 1);
+        this.registry.set("npcTalkedThisWeek", {});
+        this.registry.set("Funds", 50000);
+        this.registry.set("Product", 20);
+        this.registry.set("Morale", 70);
+        this.registry.set("Hype", 10);
+        this.scene.start("OfficeScene");
+      });
+    }
+
+    // Settings
+    this.createButton(width / 2, height * 0.62, "Settings", () => {
       this.scene.start("SettingsScene");
     });
 
-    // Show credits overlay
-    this.createButton(width / 2, height * 0.62, "Credits", () => this.showCredits());
+    // Credits
+    this.createButton(width / 2, height * 0.72, "Credits", () => this.showCredits());
   }
 
   createButton(x, y, text, callback) {

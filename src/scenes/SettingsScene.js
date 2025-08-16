@@ -14,10 +14,23 @@ export default class SettingsScene extends Phaser.Scene {
       color: "#ffffff"
     }).setOrigin(0.5);
 
+    // How to Play instructions
+    this.add.text(
+      width / 2,
+      height * 0.25,
+      "💡 How to Play:\nManage your funds, keep morale high,\nand finish the product within 12 weeks.",
+      {
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "24px",
+        color: "#cfe0ff",
+        align: "center"
+      }
+    ).setOrigin(0.5);
+
     // Name edit button
     this.nameButton = this.createButton(
       width / 2,
-      height * 0.4, // shifted slightly down
+      height * 0.4,
       `Edit Name: ${this.registry.get("playerName")}`,
       () => this.openNameDialog()
     );
@@ -25,7 +38,7 @@ export default class SettingsScene extends Phaser.Scene {
     // Back to menu button
     this.createButton(
       width / 2,
-      height * 0.6, // closer to name button now
+      height * 0.6,
       "⬅ Back to Menu",
       () => this.scene.start("MenuScene")
     );
